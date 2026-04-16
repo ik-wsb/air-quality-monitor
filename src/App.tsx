@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SearchForm from './components/SearchForm';
+import AirQualityCard from './components/AirQualityCard'; // Importujemy naszą nową kartę!
 import { fetchAirQuality } from './api/airApi';
 
 function App() {
@@ -30,15 +31,10 @@ function App() {
 
       {loading && <p style={{ textAlign: 'center' }}>⏳ Pobieranie danych dla miasta...</p>}
 
-      {error && <p style={{ color: 'red', textAlign: 'center' }}>❌ {error}</p>}
+      {error && <p style={{ color: 'red', textAlign: 'center', padding: '10px', backgroundColor: '#fee2e2', borderRadius: '5px' }}>❌ {error}</p>}
 
-      {data && (
-        <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '10px', marginTop: '20px' }}>
-          <h2>Miasto: {data.city}</h2>
-          <p>Indeks: <strong>{data.index}</strong></p>
-          <pre>{JSON.stringify(data.details, null, 2)}</pre>
-        </div>
-      )}
+      {/* Jeśli mamy dane, wyświetlamy ładną kartę wyników */}
+      {data && <AirQualityCard data={data} />}
     </div>
   );
 }
