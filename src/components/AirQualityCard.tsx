@@ -1,63 +1,55 @@
-interface AirQualityData {
-  city: string;
-  index: string;
-  details: {
-    pm10: number;
-    pm25: number;
-    no2: number;
-  };
-}
-
-interface Props {
-  data: AirQualityData;
-}
-
-export default function AirQualityCard({ data }: Props) {
-  // Funkcja decydująca o kolorze na podstawie indeksu z API
+export default function AirQualityCard({ data }: { data: any }) {
   const getTheme = (index: string) => {
     switch (index) {
-      case 'GOOD': 
-        return { bg: '#d1fae5', text: '#065f46', label: 'Dobry' }; // Zielony
-      case 'MODERATE': 
-        return { bg: '#fef3c7', text: '#92400e', label: 'Umiarkowany' }; // Pomarańczowy
-      case 'POOR': 
-        return { bg: '#fee2e2', text: '#991b1b', label: 'Zły' }; // Czerwony
-      default: 
-        return { bg: '#f3f4f6', text: '#1f2937', label: 'Nieznany' }; // Szary
+      case 'GOOD': return { color: '#4ade80', label: 'Dobry' };
+      case 'MODERATE': return { color: '#fbbf24', label: 'Umiarkowany' };
+      case 'POOR': return { color: '#f87171', label: 'Zły' };
+      default: return { color: '#94a3b8', label: 'Brak danych' };
     }
   };
 
   const theme = getTheme(data.index);
 
   return (
-    <div style={{
-      backgroundColor: theme.bg,
-      color: theme.text,
-      padding: '20px',
-      borderRadius: '12px',
-      marginTop: '20px',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      transition: 'background-color 0.3s ease'
-    }}>
-      <h2 style={{ margin: '0 0 10px 0' }}>Miasto: {data.city}</h2>
-      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 20px 0' }}>
-        Jakość powietrza: {theme.label}
-      </p>
-      
-      {/* Szczegółowe parametry wylistowane poniżej */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '5px' }}>
-          <span>PM10</span>
-          <strong>{data.details.pm10} µg/m³</strong>
+    <div style={{ backgroundColor: '#111827', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
+      {/* Górna sekcja */}
+      <div style={{ padding: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1f2937' }}>
+        <div>
+          <p style={{ color: '#94a3b8', fontSize: '12px', margin: '0 0 4px 0' }}>Jakość powietrza</p>
+          <h2 style={{ fontSize: '28px', margin: '0 0 8px 0' }}>{data.city}</h2>
+          <span style={{ backgroundColor: theme.color + '22', color: theme.color, padding: '4px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+            {theme.label}
+          </span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '5px' }}>
-          <span>PM2.5</span>
-          <strong>{data.details.pm25} µg/m³</strong>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '64px', fontWeight: 'bold', color: theme.color, lineHeight: '1' }}>50</div>
+          <div style={{ fontSize: '14px', color: '#94a3b8' }}>AQI</div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '5px' }}>
-          <span>NO2</span>
-          <strong>{data.details.no2} µg/m³</strong>
-        </div>
+      </div>
+
+      {/* Szczegółowe pomiary z paskami (jak w PDF) */}
+      <div style={{ padding: '30px' }}>
+        <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '20px' }}>Szczegółowe pomiary</p>
+        {[
+          { label: 'PM2.5', value: data.details.pm25, max: 25 },
+          { label: 'PM10', value: data.details.pm10, max: 50 },
+          { label: 'NO2', value: data.details.no2, max: 40 }
+        ].map(param => (
+          <div key={param.label} style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+              <span style={{ fontWeight: 'bold' }}>{param.label}</span>
+              <span style={{ color: '#94a3b8' }}>{param.value} µg/m³</span>
+            </div>
+            <div style={{ height: '6px', backgroundColor: '#1f2937', borderRadius: '3px' }}>
+              <div style={{ 
+                height: '100%', 
+                width: `${Math.min((param.value / param.max) * 100, 100)}%`, 
+                backgroundColor: theme.color, 
+                borderRadius: '3px' 
+              }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

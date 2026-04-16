@@ -16,21 +16,34 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
       <input
         type="text"
-        placeholder="Wpisz miasto (np. Wrocław)..."
+        placeholder="Wpisz miasto..."
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         disabled={isLoading}
-        style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', flex: 1 }}
+        style={{ 
+          padding: '12px 20px', 
+          borderRadius: '8px', 
+          backgroundColor: '#111827', 
+          color: 'white', 
+          flex: 1
+        }}
       />
       <button 
         type="submit" 
         disabled={isLoading}
-        style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}
+        style={{ 
+          padding: '10px 24px', 
+          borderRadius: '8px', 
+          backgroundColor: '#3b82f6', 
+          color: 'white', 
+          cursor: 'pointer',
+          fontWeight: 'bold'
+        }}
       >
-        {isLoading ? 'Szukam...' : 'Szukaj'}
+        {isLoading ? '...' : 'Szukaj'}
       </button>
     </form>
   );

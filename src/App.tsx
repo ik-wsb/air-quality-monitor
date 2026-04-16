@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import SearchForm from './components/SearchForm';
-import AirQualityCard from './components/AirQualityCard'; // Importujemy naszą nową kartę!
+import AirQualityCard from './components/AirQualityCard';
 import { fetchAirQuality } from './api/airApi';
+
+// WAŻNE: Nie dodawaj tutaj import './App.css' ani './index.css'
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -12,7 +14,6 @@ function App() {
     setLoading(true);
     setError(null);
     setData(null);
-
     try {
       const result = await fetchAirQuality(city);
       setData(result);
@@ -24,17 +25,48 @@ function App() {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '50px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Monitor Jakości Powietrza</h1>
-      
-      <SearchForm onSearch={handleSearch} isLoading={loading} />
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#0a0f18', 
+      color: 'white', 
+      padding: '40px 20px', 
+      fontFamily: 'sans-serif',
+      margin: 0 // Reset marginesów body
+    }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <header style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <p style={{ color: '#60a5fa', fontSize: '14px', marginBottom: '8px' }}>💨 Monitor powietrza</p>
+          <h1 style={{ fontSize: '32px', margin: 0 }}>Jakość powietrza</h1>
+          <p style={{ color: '#94a3b8', fontSize: '13px' }}>Dane z GIOŚ / OpenAQ • cache 1h</p>
+        </header>
+        
+        <SearchForm onSearch={handleSearch} isLoading={loading} />
 
-      {loading && <p style={{ textAlign: 'center' }}>⏳ Pobieranie danych dla miasta...</p>}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px', flexWrap: 'wrap' }}>
+          {['Warszawa', 'Kraków', 'Wrocław', 'Gdańsk', 'Poznań', 'Katowice'].map(city => (
+            <button 
+              key={city}
+              onClick={() => handleSearch(city)}
+              style={{ 
+                backgroundColor: '#1e293b', 
+                border: 'none', 
+                color: '#94a3b8', 
+                padding: '6px 16px', 
+                borderRadius: '20px', 
+                cursor: 'pointer',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            >
+              {city}
+            </button>
+          ))}
+        </div>
 
-      {error && <p style={{ color: 'red', textAlign: 'center', padding: '10px', backgroundColor: '#fee2e2', borderRadius: '5px' }}>❌ {error}</p>}
-
-      {/* Jeśli mamy dane, wyświetlamy ładną kartę wyników */}
-      {data && <AirQualityCard data={data} />}
+        {loading && <p style={{ textAlign: 'center' }}>⏳ Pobieranie danych...</p>}
+        {error && <p style={{ color: '#f87171', textAlign: 'center' }}>❌ {error}</p>}
+        {data && <AirQualityCard data={data} />}
+      </div>
     </div>
   );
 }
