@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import SearchForm from './components/SearchForm';
 import AirQualityCard from './components/AirQualityCard';
-import { fetchAirQuality } from './api/airApi';
 
-// WAŻNE: Nie dodawaj tutaj import './App.css' ani './index.css'
+const POLISH_CITIES = [
+  'Warszawa', 'Kraków', 'Wrocław', 'Gdańsk', 'Poznań', 
+  'Katowice', 'Łódź', 'Szczecin', 'Bydgoszcz', 'Lublin'
+];
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -11,62 +13,64 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (city: string) => {
+    const formattedCity = city.trim();
+    
+    if (!POLISH_CITIES.includes(formattedCity)) {
+      setError('Wpisz poprawne polskie miasto (np. Warszawa, Wrocław)');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setData(null);
+
     try {
-      const result = await fetchAirQuality(city);
+      const response = await fetch(`http://127.0.0.1:8000/air-quality/${formattedCity}`);
+      
+      if (!response.ok) {
+        throw new Error('Błąd połączenia z serwerem');
+      }
+
+      const result = await response.json();
       setData(result);
     } catch (err: any) {
-      setError(err.message);
+      setError('Nie udało się pobrać danych. Upewnij się, że backend działa.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#0a0f18', 
-      color: 'white', 
-      padding: '40px 20px', 
-      fontFamily: 'sans-serif',
-      margin: 0 // Reset marginesów body
-    }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f18', color: 'white', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
         <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <p style={{ color: '#60a5fa', fontSize: '14px', marginBottom: '8px' }}>💨 Monitor powietrza</p>
-          <h1 style={{ fontSize: '32px', margin: 0 }}>Jakość powietrza</h1>
-          <p style={{ color: '#94a3b8', fontSize: '13px' }}>Dane z GIOŚ / OpenAQ • cache 1h</p>
+          <h1>Monitor Jakości Powietrza</h1>
+          <p style={{ color: '#94a3b8' }}>Wybierz miasto w Polsce</p>
         </header>
-        
+
         <SearchForm onSearch={handleSearch} isLoading={loading} />
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px', flexWrap: 'wrap' }}>
-          {['Warszawa', 'Kraków', 'Wrocław', 'Gdańsk', 'Poznań', 'Katowice'].map(city => (
-            <button 
-              key={city}
-              onClick={() => handleSearch(city)}
-              style={{ 
-                backgroundColor: '#1e293b', 
-                border: 'none', 
-                color: '#94a3b8', 
-                padding: '6px 16px', 
-                borderRadius: '20px', 
-                cursor: 'pointer',
-                fontSize: '13px',
-                outline: 'none'
-              }}
-            >
-              {city}
-            </button>
-          ))}
-        </div>
+        {loading && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '20px' }}>
+            <div className="spinner" style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid rgba(255,255,255,0.1)',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+          </div>
+        )}
 
-        {loading && <p style={{ textAlign: 'center' }}>⏳ Pobieranie danych...</p>}
-        {error && <p style={{ color: '#f87171', textAlign: 'center' }}>❌ {error}</p>}
-        {data && <AirQualityCard data={data} />}
+        {error && <p style={{ color: '#f87171', textAlign: 'center' }}>{error}</p>}
+        
+        {data && !loading && <AirQualityCard data={data} />}
       </div>
+      
+      <style>{`
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
