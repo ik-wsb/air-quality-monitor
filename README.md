@@ -1,1 +1,3 @@
-# air-quality-monitor
+git checkout main
+git pull
+git checkout -b specyfikacja-readme
