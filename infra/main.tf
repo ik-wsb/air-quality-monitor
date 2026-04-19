@@ -177,46 +177,48 @@ set -eux
 
 # Install Docker (minimal)
 if command -v dnf >/dev/null 2>&1; then
-  dnf -y install docker || true
+  dnf -y install docker git || true
   systemctl enable --now docker
   usermod -aG docker ec2-user || true
 else
   apt-get update -y
-  apt-get install -y docker.io || true
+  apt-get install -y docker.io git || true
   systemctl enable --now docker
 fi
 
-# Create env file for container (used by docker compose)
-mkdir -p /home/ec2-user/app
-chown ec2-user:ec2-user /home/ec2-user/app
-cat > /home/ec2-user/app/.env <<EOL
+cd /home/ec2-user
+
+# Jeśli podano obraz kontenera, używamy go
+if [ -n "${var.container_image}" ]; then
+  mkdir -p app
+  cat > /home/ec2-user/app/.env <<EOL
+DATABASE_URL=postgresql://monitor_user:${var.db_password}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
+REDIS_HOST=${aws_elasticache_cluster.redis.cache_nodes[0].address}
+EOL
+  docker pull "${var.container_image}" || true
+  docker rm -f air_quality_api || true
+  docker run -d --name air_quality_api --restart unless-stopped -p 8000:8000 --env-file /home/ec2-user/app/.env "${var.container_image}"
+
+# Jeśli podano URL repozytorium, klonujemy i odpalamy compose
+elif [ -n "${var.repo_url}" ]; then
+  # Najpierw klonujemy repozytorium
+  git clone "${var.repo_url}" app || (cd app && git pull)
+  chown -R ec2-user:ec2-user app
+  cd app || exit 0
+  
+  # DOPIERO TERAZ generujemy plik .env wewnątrz sklonowanego repozytorium
+  cat > .env <<EOL
 DATABASE_URL=postgresql://monitor_user:${var.db_password}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
 REDIS_HOST=${aws_elasticache_cluster.redis.cache_nodes[0].address}
 EOL
 
-# If a prebuilt image reference is provided, run it directly; otherwise use docker compose
-if [ -n "${var.container_image}" ]; then
-  IMAGE_REF="${var.container_image}"
-  docker pull "$IMAGE_REF" || true
-  docker rm -f air_quality_api || true
-  docker run -d --name air_quality_api --restart unless-stopped -p 8000:8000 --env-file /home/ec2-user/app/.env "$IMAGE_REF"
-else
-  # Fallback: clone repo and run docker compose (backend only)
-  if [ -n "${var.repo_url}" ]; then
-    cd /home/ec2-user
-    git clone "${var.repo_url}" app || (cd app && git pull)
-    chown -R ec2-user:ec2-user app
-    cd app || exit 0
-    # Ensure docker compose is available
-    if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
-      curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-      chmod +x /usr/local/bin/docker-compose
-    fi
-    # Run only the backend service so we rely on RDS/ElastiCache managed services
-    docker compose up -d backend
-  else
-    echo "No container_image or repo_url provided; nothing to run"
+  if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
+    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
   fi
+  
+  # Uruchamiamy tylko backend
+  DOCKER_BUILDKIT=0 docker-compose up -d backend
 fi
 
 EOF
