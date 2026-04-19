@@ -26,3 +26,61 @@ Aplikacja pokazująca aktualny poziom zanieczyszczeń powietrza w wybranym mieś
 * **UC2 - Wyszukanie miasta (brak w DB / dane przeterminowane):** Backend odpytuje zewnętrzne API (GIOŚ) o najnowsze odczyty.
 * **UC3 - Odpytanie przez REST API:** Integrator wysyła żądanie `GET /air-quality/{city}`.
 * **UC4 - Błędne miasto / brak stacji:** Aplikacja webowa obsługuje błąd 404 i wyświetla komunikat.
+
+## Uruchomienie lokalnie z Docker Compose
+
+### Wymagania
+* Docker
+* Docker Compose
+
+### Instalacja i uruchomienie
+
+1. **Sklonuj repozytorium:**
+   ```bash
+   git clone <repository-url>
+   cd air-quality-monitor
+   ```
+
+2. **Uruchom aplikację:**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Dostęp do aplikacji:**
+   * Frontend: http://localhost:5173
+   * Backend API: http://localhost:8000
+   * Dokumentacja API (Swagger): http://localhost:8000/docs
+
+### Usługi uruchamiane w kontenerach
+
+| Usługa | Port | Opis |
+|--------|------|------|
+| PostgreSQL | 5432 | Baza danych |
+| Redis | 6379 | Cache |
+| Backend | 8000 | API FastAPI |
+| Frontend | 5173 | Aplikacja React |
+
+### Zatrzymanie aplikacji
+
+```bash
+docker-compose down
+```
+
+### Czyszczenie danych
+
+Aby usunąć całe dane (baza i cache):
+```bash
+docker-compose down -v
+```
+
+### Troubleshooting
+
+- Jeśli port jest już zajęty, edytuj lub potwierdź edycję w `docker-compose.yml`
+- Sprawdź logi: `docker-compose logs -f <service_name>`
+- Restart:
+  ```bash
+  docker-compose restart
+  ```
+
+
+

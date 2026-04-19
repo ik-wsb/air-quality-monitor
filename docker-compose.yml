@@ -1,28 +1,59 @@
-version: '3.8'
-
 services:
   db:
-    image: postgres:15-alpine
-    container_name: air_quality_postgres
-    restart: always
+    image: postgres:15
+    container_name: air_quality_db_local
     environment:
       POSTGRES_USER: monitor_user
-      POSTGRES_PASSWORD: monitor_password
+      POSTGRES_PASSWORD: TrudneHaslo123!
       POSTGRES_DB: air_quality_db
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U monitor_user -d air_quality_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
 
-  cache:
+  redis:
     image: redis:7-alpine
-    container_name: air_quality_redis
-    restart: always
+    container_name: air_quality_redis_local
     ports:
       - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: air_quality_backend_local
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://monitor_user:TrudneHaslo123!@db:5432/air_quality_db
+      - REDIS_HOST=redis
     volumes:
-      - redis_data:/data
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: air_quality_frontend_local
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
-  redis_data:
