@@ -132,7 +132,7 @@ resource "aws_elasticache_subnet_group" "redis_subnet" {
 
 resource "aws_db_instance" "postgres" {
   identifier             = "air-quality-db"
-  db_name                = "air-quality-db"
+  db_name                = "air_quality_db"
   engine                 = "postgres"
   engine_version         = "16"
   instance_class         = "db.t3.micro"
@@ -190,7 +190,7 @@ fi
 mkdir -p /home/ec2-user/app
 chown ec2-user:ec2-user /home/ec2-user/app
 cat > /home/ec2-user/app/.env <<EOL
-DATABASE_URL=postgresql://monitor_user:TrudneHaslo123!@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air-quality-db
+DATABASE_URL=postgresql://monitor_user:TrudneHaslo123!@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
 REDIS_HOST=${aws_elasticache_cluster.redis.cache_nodes[0].address}
 EOL
 
