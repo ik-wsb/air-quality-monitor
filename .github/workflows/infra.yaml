@@ -1,0 +1,59 @@
+name: infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to run: plan, apply, destroy'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' }}
+        working-directory: infra
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: terraform plan -out=tfplan -input=false
+
+      - name: Terraform Apply
+        if: ${{ github.event.inputs.action == 'apply' }}
+        working-directory: infra
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: terraform apply -input=false tfplan
+
+      - name: Terraform Destroy (with AWS ENI fallback)
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        working-directory: infra
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: |
+          terraform destroy -auto-approve -input=false
