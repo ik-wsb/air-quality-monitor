@@ -14,3 +14,9 @@ variable "container_image" {
   default     = ""
   description = "Full image reference to pull on EC2 (e.g., ghcr.io/owner/air-quality-backend:latest). If empty, EC2 will build image from repo_url."
 }
+
+variable "db_password" {
+  type        = string
+  description = "PostgreSQL password"
+  sensitive   = true
+}

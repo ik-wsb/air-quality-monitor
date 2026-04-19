@@ -138,7 +138,7 @@ resource "aws_db_instance" "postgres" {
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   username               = "monitor_user"
-  password               = "TrudneHaslo123!"
+  password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.db_subnet.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   skip_final_snapshot    = true
@@ -190,7 +190,7 @@ fi
 mkdir -p /home/ec2-user/app
 chown ec2-user:ec2-user /home/ec2-user/app
 cat > /home/ec2-user/app/.env <<EOL
-DATABASE_URL=postgresql://monitor_user:TrudneHaslo123!@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
+DATABASE_URL=postgresql://monitor_user:${var.db_password}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
 REDIS_HOST=${aws_elasticache_cluster.redis.cache_nodes[0].address}
 EOL
 
