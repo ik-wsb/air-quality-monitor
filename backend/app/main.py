@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import redis
 import json
+import os
 from datetime import datetime, timedelta
 
 from . import models, schemas
@@ -18,7 +19,9 @@ app = FastAPI(
 )
 
 # Połączenie z Redisem (uruchomionym w Dockerze) do cachowania wyników
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+
+redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
 
 # Helper do obsługi sesji bazy danych - FastAPI automatycznie ją zamknie po skończeniu requestu
 def get_db():
