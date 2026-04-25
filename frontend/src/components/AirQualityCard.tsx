@@ -10,6 +10,15 @@ export default function AirQualityCard({ data }: { data: any }) {
 
   const theme = getTheme(data.index);
 
+  const parameters = [
+    { label: 'PM2.5', value: data.details.pm25, max: 25 },
+    { label: 'PM10', value: data.details.pm10, max: 50 },
+    { label: 'NO2', value: data.details.no2, max: 40 },
+    { label: 'O3', value: data.details.o3, max: 120 },
+    { label: 'SO2', value: data.details.so2, max: 125 },
+    { label: 'CO', value: data.details.co, max: 10000 }
+  ];
+
   return (
     <div style={{ backgroundColor: '#111827', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
       {/* Górna sekcja */}
@@ -21,34 +30,29 @@ export default function AirQualityCard({ data }: { data: any }) {
             {theme.label}
           </span>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '64px', fontWeight: 'bold', color: theme.color, lineHeight: '1' }}>50</div>
-          <div style={{ fontSize: '14px', color: '#94a3b8' }}>AQI</div>
-        </div>
       </div>
 
-      {/* Szczegółowe pomiary z paskami (jak w PDF) */}
+      {/* Szczegółowe pomiary */}
       <div style={{ padding: '30px' }}>
         <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '20px' }}>Szczegółowe pomiary</p>
-        {[
-          { label: 'PM2.5', value: data.details.pm25, max: 25 },
-          { label: 'PM10', value: data.details.pm10, max: 50 },
-          { label: 'NO2', value: data.details.no2, max: 40 }
-        ].map(param => (
-          <div key={param.label} style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-              <span style={{ fontWeight: 'bold' }}>{param.label}</span>
-              <span style={{ color: '#94a3b8' }}>{param.value} µg/m³</span>
+        {parameters.map(param => (
+          param.value !== null && param.value !== undefined && (
+            <div key={param.label} style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                <span style={{ fontWeight: 'bold' }}>{param.label}</span>
+                <span style={{ color: '#94a3b8' }}>{param.value} µg/m³</span>
+              </div>
+              <div style={{ height: '6px', backgroundColor: '#1f2937', borderRadius: '3px' }}>
+                <div style={{ 
+                  height: '100%', 
+                  width: `${Math.min((param.value / param.max) * 100, 100)}%`, 
+                  backgroundColor: theme.color, 
+                  borderRadius: '3px',
+                  transition: 'width 0.5s ease-out'
+                }} />
+              </div>
             </div>
-            <div style={{ height: '6px', backgroundColor: '#1f2937', borderRadius: '3px' }}>
-              <div style={{ 
-                height: '100%', 
-                width: `${Math.min((param.value / param.max) * 100, 100)}%`, 
-                backgroundColor: theme.color, 
-                borderRadius: '3px' 
-              }} />
-            </div>
-          </div>
+          )
         ))}
       </div>
     </div>
