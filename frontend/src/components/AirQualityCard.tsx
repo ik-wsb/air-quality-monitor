@@ -1,72 +1,60 @@
 interface AirQualityCardProps {
-  data: {
-    city: string;
-    overall_status: string;
-    pm10: number;
-    pm25: number;
-    no2: number;
-    aqi_value?: number; // Jeśli backend to wysyła
-  };
+  data: any; // Używamy any, żeby zobaczyć co on tam faktycznie przysyła
 }
 
 export default function AirQualityCard({ data }: AirQualityCardProps) {
-  const getTheme = (status: string) => {
-    switch (status) {
-      case 'GOOD': return { color: '#4ade80', label: 'Dobry' };
-      case 'MODERATE': return { color: '#fbbf24', label: 'Umiarkowany' };
-      case 'POOR': return { color: '#f87171', label: 'Zły' };
-      default: return { color: '#94a3b8', label: 'Brak danych' };
-    }
+  // Funkcja pomocnicza do wyciągania wartości, bo Igor może to przysyłać w różny sposób
+  const getValue = (key: string) => {
+    return data[key] || data.values?.[key] || data.measurements?.[key] || 0;
   };
 
-  // ZMIANA: Pobieramy status z overall_status (tak chce Igor)
-  const theme = getTheme(data.overall_status);
+  const status = data.overall_status || data.index || 'UNKNOWN';
+  
+  const getTheme = (s: string) => {
+    if (s.includes('GOOD') || s.includes('Bardzo dobry')) return { color: '#4ade80', label: 'Dobry' };
+    if (s.includes('MODERATE') || s.includes('Umiarkowany')) return { color: '#fbbf24', label: 'Średni' };
+    return { color: '#f87171', label: 'Zły' };
+  };
+
+  const theme = getTheme(status);
 
   return (
-    <div style={{ backgroundColor: '#111827', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)', marginTop: '20px' }}>
-      {/* Górna sekcja */}
-      <div style={{ padding: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1f2937' }}>
+    <div style={{ backgroundColor: '#111827', borderRadius: '16px', padding: '30px', marginTop: '20px', color: 'white' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1f2937', paddingBottom: '20px' }}>
         <div>
-          <p style={{ color: '#94a3b8', fontSize: '12px', margin: '0 0 4px 0' }}>Jakość powietrza</p>
-          <h2 style={{ fontSize: '28px', margin: '0 0 8px 0', color: 'white' }}>{data.city}</h2>
-          <span style={{ backgroundColor: theme.color + '22', color: theme.color, padding: '4px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-            {theme.label}
-          </span>
+          <h2 style={{ fontSize: '24px', margin: '0' }}>{data.city || 'Nieznane miasto'}</h2>
+          <span style={{ color: theme.color, fontWeight: 'bold' }}>{theme.label}</span>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          {/* ZMIANA: Tu wstawiamy realny AQI z backendu lub domyślnie 50 */}
-          <div style={{ fontSize: '64px', fontWeight: 'bold', color: theme.color, lineHeight: '1' }}>
-            {data.aqi_value || '--'}
-          </div>
-          <div style={{ fontSize: '14px', color: '#94a3b8' }}>AQI</div>
+        <div style={{ fontSize: '48px', fontWeight: 'bold', color: theme.color }}>
+          {data.aqi || data.aqi_value || '--'}
         </div>
       </div>
 
-      {/* Szczegółowe pomiary */}
-      <div style={{ padding: '30px' }}>
-        <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '20px' }}>Szczegółowe pomiary</p>
+      <div style={{ marginTop: '20px' }}>
         {[
-          { label: 'PM2.5', value: data.pm25, max: 25 }, // ZMIANA: data.pm25 zamiast data.details.pm25
-          { label: 'PM10', value: data.pm10, max: 50 },  // ZMIANA: data.pm10 zamiast data.details.pm10
-          { label: 'NO2', value: data.no2, max: 40 }      // ZMIANA: data.no2 zamiast data.details.no2
-        ].map(param => (
-          <div key={param.label} style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: 'white' }}>
-              <span style={{ fontWeight: 'bold' }}>{param.label}</span>
-              <span style={{ color: '#94a3b8' }}>{param.value || 0} µg/m³</span>
+          { label: 'PM10', val: getValue('pm10'), max: 50 },
+          { label: 'PM2.5', val: getValue('pm25'), max: 25 },
+          { label: 'NO2', val: getValue('no2'), max: 40 }
+        ].map(p => (
+          <div key={p.label} style={{ marginBottom: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
+              <span>{p.label}</span>
+              <span>{p.val} µg/m³</span>
             </div>
-            <div style={{ height: '6px', backgroundColor: '#1f2937', borderRadius: '3px' }}>
+            <div style={{ height: '8px', backgroundColor: '#1f2937', borderRadius: '4px' }}>
               <div style={{ 
                 height: '100%', 
-                width: `${Math.min(((param.value || 0) / param.max) * 100, 100)}%`, 
+                width: `${Math.min((p.val / p.max) * 100, 100)}%`, 
                 backgroundColor: theme.color, 
-                borderRadius: '3px',
-                transition: 'width 0.5s ease-in-out'
+                borderRadius: '4px',
+                transition: 'width 0.5s' 
               }} />
             </div>
           </div>
         ))}
       </div>
+      {/* TA LINIA JEST DLA CIEBIE DO TESTU - usuń ją przed wysłaniem do Igora jeśli chcesz */}
+      <pre style={{fontSize: '10px', color: '#444', marginTop: '20px'}}>Debug: {JSON.stringify(data)}</pre>
     </div>
   );
 }
