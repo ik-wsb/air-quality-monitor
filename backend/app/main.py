@@ -4,6 +4,7 @@ import redis
 import json
 import os
 from datetime import datetime, timedelta
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import models, schemas
 from .database import engine, SessionLocal
@@ -94,3 +95,11 @@ async def get_air_quality(city: str, db: Session = Depends(get_db)):
     redis_client.setex(city_key, 3600, json.dumps(response_data))
     
     return db_record
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Ewentualnie ["*"] do testów
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
