@@ -1,19 +1,19 @@
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export const fetchAirQuality = async (city: string) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (city.toLowerCase() === "nibylandia") {
-        reject(new Error("Nie znaleziono stacji pomiarowej dla tego miasta"));
-      } else {
-        resolve({
-          city: city.charAt(0).toUpperCase() + city.slice(1),
-          index: "GOOD",
-          details: {
-            pm10: 20,
-            pm25: 12,
-            no2: 10
-          }
-        });
+  try {
+    const response = await fetch(`${API_URL}/air-quality/${city}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Nie znaleziono stacji pomiarowej w tym mieście.');
       }
-    }, 1500);
-  });
+      throw new Error('Błąd serwera backendowego.');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
 };
