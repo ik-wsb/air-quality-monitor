@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import SearchForm from './components/SearchForm';
-import AirQualityCard from './components/AirQualityCard';
 
 const POLISH_CITIES = [
   'Warszawa', 'Kraków', 'Wrocław', 'Gdańsk', 'Poznań', 
@@ -16,7 +15,7 @@ function App() {
     const formattedCity = city.trim();
     
     if (!POLISH_CITIES.includes(formattedCity)) {
-      setError('Wpisz poprawne polskie miasto (np. Warszawa, Wrocław)');
+      setError('Wybierz miasto z listy: ' + POLISH_CITIES.join(', '));
       return;
     }
 
@@ -28,49 +27,34 @@ function App() {
       const response = await fetch(`http://127.0.0.1:8000/air-quality/${formattedCity}`);
       
       if (!response.ok) {
-        throw new Error('Błąd połączenia z serwerem');
+        throw new Error('Backend nie odpowiedział poprawnie');
       }
 
       const result = await response.json();
       setData(result);
     } catch (err: any) {
-      setError('Nie udało się pobrać danych. Upewnij się, że backend działa.');
+      setError('Błąd połączenia z backendem Igora. Sprawdź czy serwer działa.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f18', color: 'white', padding: '40px 20px' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1>Monitor Jakości Powietrza</h1>
-          <p style={{ color: '#94a3b8' }}>Wybierz miasto w Polsce</p>
-        </header>
+    <div style={{ padding: '40px', maxWidth: '600px', margin: '0 auto', fontFamily: 'sans-serif', color: 'white', backgroundColor: '#111' }}>
+      <h1>Monitor Jakości Powietrza</h1>
+      <SearchForm onSearch={handleSearch} isLoading={loading} />
 
-        <SearchForm onSearch={handleSearch} isLoading={loading} />
-
-        {loading && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '20px' }}>
-            <div className="spinner" style={{
-              width: '40px',
-              height: '40px',
-              border: '4px solid rgba(255,255,255,0.1)',
-              borderTop: '4px solid #3b82f6',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
-            }} />
-          </div>
-        )}
-
-        {error && <p style={{ color: '#f87171', textAlign: 'center' }}>{error}</p>}
-        
-        {data && !loading && <AirQualityCard data={data} />}
-      </div>
+      {loading && <p>Pobieranie danych z backendu...</p>}
+      {error && <p style={{ color: '#ff4444' }}>{error}</p>}
       
-      <style>{`
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      `}</style>
+      {data && (
+        <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #444', borderRadius: '8px', backgroundColor: '#222' }}>
+          <h2>Wynik dla: {data.city}</h2>
+          <p>Indeks jakości: <strong>{data.aqi}</strong></p>
+          <p>Status: {data.status}</p>
+          <p style={{ fontSize: '12px', color: '#888' }}>Źródło: {data.source}</p>
+        </div>
+      )}
     </div>
   );
 }
