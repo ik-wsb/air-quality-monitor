@@ -86,6 +86,13 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -175,50 +182,68 @@ resource "aws_instance" "fastapi_server" {
 #!/bin/bash
 set -eux
 
-# Install Docker (minimal)
+# Instalacja Docker i Git (z poprawką dla Amazon Linux 2023)
 if command -v dnf >/dev/null 2>&1; then
-  dnf -y install docker || true
-  systemctl enable --now docker
+  dnf -y update
+  dnf -y install docker git || true
+  systemctl daemon-reload
+  systemctl enable docker
+  systemctl start docker
   usermod -aG docker ec2-user || true
 else
   apt-get update -y
-  apt-get install -y docker.io || true
+  apt-get install -y docker.io git || true
   systemctl enable --now docker
+  usermod -aG docker ec2-user || true
 fi
 
-# Create env file for container (used by docker compose)
-mkdir -p /home/ec2-user/app
-chown ec2-user:ec2-user /home/ec2-user/app
-cat > /home/ec2-user/app/.env <<EOL
+# Jeśli podano obraz kontenera (uruchomienie tylko backendu z obrazu)
+if [ -n "${var.container_image}" ]; then
+  mkdir -p /home/ec2-user/app
+  cat > /home/ec2-user/app/.env <<EOL
 DATABASE_URL=postgresql://monitor_user:${var.db_password}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
 REDIS_HOST=${aws_elasticache_cluster.redis.cache_nodes[0].address}
 EOL
-
-# If a prebuilt image reference is provided, run it directly; otherwise use docker compose
-if [ -n "${var.container_image}" ]; then
   IMAGE_REF="${var.container_image}"
   docker pull "$IMAGE_REF" || true
   docker rm -f air_quality_api || true
   docker run -d --name air_quality_api --restart unless-stopped -p 8000:8000 --env-file /home/ec2-user/app/.env "$IMAGE_REF"
+
 else
-  # Fallback: clone repo and run docker compose (backend only)
+  # Pobranie repozytorium i uruchomienie pełnego środowiska (Backend + Frontend)
   if [ -n "${var.repo_url}" ]; then
     cd /home/ec2-user
+    
+    # UWAGA: Jeżeli Twoje zmiany wciąż są na branchu 'feature/aws-deploy', 
+    # zmień poniższą linijkę na: git clone -b feature/aws-deploy "${var.repo_url}" app
     git clone "${var.repo_url}" app || (cd app && git pull)
+    
     chown -R ec2-user:ec2-user app
     cd app || exit 0
-    # Ensure docker compose is available
+
+    # Pobieranie publicznego adresu IP maszyny EC2 (Metadane AWS)
+    TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+    PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+    # Generowanie pliku .env wewnątrz folderu aplikacji
+    cat > .env <<EOL
+DATABASE_URL=postgresql://monitor_user:${var.db_password}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/air_quality_db
+REDIS_HOST=${aws_elasticache_cluster.redis.cache_nodes[0].address}
+VITE_API_URL=http://$PUBLIC_IP:8000
+EOL
+
+    # Pobieranie starej wersji wtyczki docker-compose
     if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
       curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
       chmod +x /usr/local/bin/docker-compose
     fi
-    # Run only the backend service so we rely on RDS/ElastiCache managed services
-    docker compose up -d backend
+    
+    # Uruchamianie bazy danych, cache, backendu i frontendu z pominięciem buildx
+    DOCKER_BUILDKIT=0 /usr/local/bin/docker-compose up -d backend frontend
   else
     echo "No container_image or repo_url provided; nothing to run"
   fi
 fi
-
 EOF
   user_data_replace_on_change = true
   tags                        = { Name = "AirQuality-FastAPI" }

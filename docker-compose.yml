@@ -48,7 +48,8 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8000
+      # ZMIENIONE: Wczytuje adres ze zmiennej, domyślnie używa localhost
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
     volumes:
       - ./frontend:/app
       - /app/node_modules
