@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "repo_url" {
   type        = string
-  default     = ""
+  default     = "https://github.com/ik-wsb/air-quality-monitor.git"
   description = "HTTPS clone URL of the GitHub repo to deploy (e.g., https://github.com/youruser/air-quality-monitor.git)."
 }
 
